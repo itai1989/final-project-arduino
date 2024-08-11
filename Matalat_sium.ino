@@ -15,9 +15,12 @@ int Leds[NUM_OF_LEDS] = { pinLed_G, pinLed_Y, pinLed_B, pinLed_R };
 int Btns[NUM_OF_LEDS] = { pinBtn_G, pinBtn_Y, pinBtn_B, pinBtn_R };
 int isLedON[NUM_OF_LEDS];
 int lastStateBtn[NUM_OF_LEDS] = { HIGH, HIGH, HIGH, HIGH };
+int score = 0;
 
 int rnd;
 unsigned long lastPress;
+unsigned long start1Press;
+bool isPress1 = false;
 
 void setup() {
   for (int k = 0; k < NUM_OF_LEDS; k++) {
@@ -36,13 +39,31 @@ void loop() {
   for (int k = 0; k < NUM_OF_LEDS; k++) {
     if ((digitalRead(bts[k]) == LOW) && (lastStateBtn[k] == HIGH) && (millis() - lastPress > 50)) {
       lastStateBtn[k] = LOW;
+      if (!isPress1) {
+        start1Press = millis();
+        isPress1 = true;
+      }
       if (!isLedON[k]) {
         gameOver();
+        break;
+      } else {
+        score++;
       }
     } else if ((digitalRead(bts[k]) == HIGH)) {
       lastStateBtn[k] = HIGH;
+      if (score == 3 && millis() - start1Press < 1000) {
+        youWin();
+      } else if (score == 3 && millis() - start1Press >= 1000) {
+        gameOver();
+      }
     }
   }
+}
+}
+void youWin() {
+  LedBlink(0);
+  bip(800);
+  playGame();
 }
 void gameOver() {
   LedBlink(3);
