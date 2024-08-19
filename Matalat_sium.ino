@@ -3,27 +3,25 @@
 #define pinLed_B 10
 #define pinLed_R 11
 
-#define pinBtn_G 1
-#define pinBtn_Y 2
-#define pinBtn_B 3
-#define pinBtn_R 4
+#define pinBtn_G 2
+#define pinBtn_Y 3
+#define pinBtn_B 4
+#define pinBtn_R 12
 
 #define Speaker 8
-
 
 #define NUM_OF_LEDS 4
 int Leds[NUM_OF_LEDS] = { pinLed_G, pinLed_Y, pinLed_B, pinLed_R };
 int Btns[NUM_OF_LEDS] = { pinBtn_G, pinBtn_Y, pinBtn_B, pinBtn_R };
-int isLedON[NUM_OF_LEDS];
+bool isLedON[NUM_OF_LEDS];
+bool isBtnPressed[NUM_OF_LEDS] = { false, false, false, false };
 int lastStateBtn[NUM_OF_LEDS] = { HIGH, HIGH, HIGH, HIGH };
-int score = 0;
+int cnt = 0;
 
 int rnd;
-unsigned long lastPress;
 unsigned long start1Press;
 unsigned long endPress;
-bool isPress1 = false;
-bool gameActive = true;
+unsigned long lastPress;
 
 void setup() {
   for (int k = 0; k < NUM_OF_LEDS; k++) {
@@ -40,61 +38,58 @@ void setup() {
 }
 
 void loop() {
-  if (gameActive) {
-    for (int k = 0; k < NUM_OF_LEDS; k++) {
-      if ((digitalRead(Btns[k]) == LOW) && (lastStateBtn[k] == HIGH) && (millis() - lastPress > 50)) {
-        lastStateBtn[k] = LOW;
-        if (!isPress1) {
+  for (int k = 0; k < NUM_OF_LEDS; k++) {
+    if ((digitalRead(Btns[k]) == LOW) && (lastStateBtn[k] == HIGH) && (millis() - lastPress > 50)) {
+      lastStateBtn[k] = LOW;
+      lastPress = millis();
+
+      if (!isLedON[k]) {
+        gameOver();
+        return;
+      }
+
+      if (!isBtnPressed[k]) {
+        if (cnt == 0) {
           start1Press = millis();
-          isPress1 = true;
         }
-        if (!isLedON[k]) {
-          gameOver();
-          return;
+        cnt++;
+        isBtnPressed[k] = true;
+      }
+
+    } else if (digitalRead(Btns[k]) == HIGH && lastStateBtn[k] == LOW) {
+      lastStateBtn[k] = HIGH;
+
+      if (cnt == 3) {
+        endPress = millis();
+        if (endPress - start1Press < 1000) {
+          youWin();
         } else {
-          score++;
-        }
-      } else if ((digitalRead(Btns[k]) == HIGH) && (lastStateBtn[k] == LOW)) {
-        lastStateBtn[k] = HIGH;
-        if (score >= 3) {
-          endPress = millis();
-          checkWinCondition();
-          return;
+          gameOver();
         }
       }
     }
   }
 }
 
-void checkWinCondition() {
-  gameActive = false;
-  if (endPress - start1Press < 5000) {  // פחות משנייה
-    youWin();
-  } else {
-    gameOver();
-  }
-}
-
 void youWin() {
-  LedBlink(0);  // הבהוב הנורה הירוקה
+  LedBlink(0);
   bip(800);
-  delay(1000);  // זמן לתצוגה
+  delay(1000);
   playGame();
 }
 
 void gameOver() {
-  LedBlink(3);  // הבהוב הנורה האדומה
+  LedBlink(3);
   bip(200);
-  delay(1000);  // זמן לתצוגה
+  delay(1000);
   playGame();
 }
 
 void playGame() {
-  score = 0;
-  isPress1 = false;
-  gameActive = true;
+  cnt = 0;
   for (int k = 0; k < NUM_OF_LEDS; k++) {
     isLedON[k] = false;
+    isBtnPressed[k] = false;
     lastStateBtn[k] = HIGH;
   }
   rndLeds();
@@ -138,8 +133,9 @@ void LedOff() {
     digitalWrite(Leds[i], LOW);
   }
 }
+
 void bip(int val) {
   tone(Speaker, val);
   delay(500);
-  tone(Speaker, 0);
+  noTone(Speaker);
 }
